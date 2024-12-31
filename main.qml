@@ -47,16 +47,16 @@ ApplicationWindow {
           visible: true
         }
 
-        onSourceChanged: {
-          imagePlaceholder.visible = (source == "")
-          pageForwardButton.enabled = (source != "")
-        }
-
         onVisibleChanged: {
           if (visible) {
             imagePlaceholder.visible = (source == "")
             pageForwardButton.enabled = (source != "")
           }
+        }
+
+        onStatusChanged: {
+          imagePlaceholder.visible = (status != Image.Ready)
+          pageForwardButton.enabled = (status == Image.Ready)
         }
 
         MouseArea {
