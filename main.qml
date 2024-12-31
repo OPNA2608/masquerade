@@ -41,10 +41,13 @@ ApplicationWindow {
 
         Text {
           id: imagePlaceholder
-          text: "Click to select an image"
+          text: defaultText
           anchors.horizontalCenter: parent.horizontalCenter
           anchors.verticalCenter: parent.verticalCenter
           visible: true
+
+          property string defaultText: "Click to select an image"
+          property string errorText: "Selected file was invalid, please try again"
         }
 
         onVisibleChanged: {
@@ -56,6 +59,7 @@ ApplicationWindow {
 
         onStatusChanged: {
           imagePlaceholder.visible = (status != Image.Ready)
+          imagePlaceholder.text = (status == Image.Error) ? imagePlaceholder.errorText : imagePlaceholder.defaultText
           pageForwardButton.enabled = (status == Image.Ready)
         }
 
@@ -67,6 +71,7 @@ ApplicationWindow {
 
       FileDialog {
         id: imageBrowser
+        fileMode: FileDialog.OpenFile
         currentFolder: StandardPaths.standardLocations(StandardPaths.PicturesLocation)[0]
         onAccepted: main.selectedImage = selectedFile
       }
