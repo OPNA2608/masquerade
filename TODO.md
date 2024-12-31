@@ -1,8 +1,5 @@
 TODOs:
 
-- Format limitation on open image dialogue
-- Error checking on selected image
-- Keep the selection as a square when resizing
 - Limit selection area to actual displayed image area
   - Attention: Window resize
 - Exchange corner markers (X, Y, Width, Height) when dragging one edge past another
