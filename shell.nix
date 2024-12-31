@@ -14,6 +14,8 @@ mkShell {
   name = "masquerade-shell";
 
   packages = with pkgs; [
+    editorconfig-checker
+
     qt6.qtbase
     qt6.qtdeclarative
   ];
