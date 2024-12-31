@@ -90,10 +90,20 @@ ApplicationWindow {
 
         Item {
           id: coordsSelectionData
+
           property real selectionRectX: 0
           property real selectionRectY: 0
           property real selectionRectWidth: 200
           property real selectionRectHeight: 200
+
+          property int dragTarget: DragTargets.Target.None
+          property real dragStartX: 0
+          property real dragStartY: 0
+
+          property real dragPlusX: 0
+          property real dragPlusY: 0
+          property real dragPlusWidth: 0
+          property real dragPlusHeight: 0
         }
 
         Image {
@@ -122,10 +132,10 @@ ApplicationWindow {
               ctx.fillRect(x, y, width, height)
 
               ctx.clearRect(
-                coordsSelectionData.selectionRectX,
-                coordsSelectionData.selectionRectY,
-                coordsSelectionData.selectionRectWidth,
-                coordsSelectionData.selectionRectHeight
+                coordsSelectionData.selectionRectX + coordsSelectionData.dragPlusX,
+                coordsSelectionData.selectionRectY + coordsSelectionData.dragPlusY,
+                coordsSelectionData.selectionRectWidth + coordsSelectionData.dragPlusWidth,
+                coordsSelectionData.selectionRectHeight + coordsSelectionData.dragPlusHeight
               )
 
               ctx.stroke()
@@ -139,9 +149,6 @@ ApplicationWindow {
             anchors.fill: parent
             z: coordsSelectionCanvas.z + 1
 
-            property int dragTarget: DragTargets.Target.None
-            property real dragX: 0
-            property real dragY: 0
 
             onPressed: function (mouse) {
               console.log("onPressed")
@@ -156,71 +163,102 @@ ApplicationWindow {
                   (coordsSelectionData.selectionRectY - mouseMargin < mouse.y) &&
                   (coordsSelectionData.selectionRectY + mouseMargin > mouse.y)
                 ) {
-                  dragTarget = DragTargets.Target.TopLeft
+                  coordsSelectionData.dragTarget = DragTargets.Target.TopLeft
                 } else if (
                   ((coordsSelectionData.selectionRectX + coordsSelectionData.selectionRectWidth) - mouseMargin < mouse.x) &&
                   ((coordsSelectionData.selectionRectX + coordsSelectionData.selectionRectWidth) + mouseMargin > mouse.x) &&
                   (coordsSelectionData.selectionRectY - mouseMargin < mouse.y) &&
                   (coordsSelectionData.selectionRectY + mouseMargin > mouse.y)
                 ) {
-                  dragTarget = DragTargets.Target.TopRight
+                  coordsSelectionData.dragTarget = DragTargets.Target.TopRight
                 } else if (
                   (coordsSelectionData.selectionRectX - mouseMargin < mouse.x) &&
                   (coordsSelectionData.selectionRectX + mouseMargin > mouse.x) &&
                   ((coordsSelectionData.selectionRectY + coordsSelectionData.selectionRectHeight) - mouseMargin < mouse.y) &&
                   ((coordsSelectionData.selectionRectY + coordsSelectionData.selectionRectHeight) + mouseMargin > mouse.y)
                 ) {
-                  dragTarget = DragTargets.Target.BottomLeft
+                  coordsSelectionData.dragTarget = DragTargets.Target.BottomLeft
                 } else if (
                   ((coordsSelectionData.selectionRectX + coordsSelectionData.selectionRectWidth) - mouseMargin < mouse.x) &&
                   ((coordsSelectionData.selectionRectX + coordsSelectionData.selectionRectWidth) + mouseMargin > mouse.x) &&
                   ((coordsSelectionData.selectionRectY + coordsSelectionData.selectionRectHeight) - mouseMargin < mouse.y) &&
                   ((coordsSelectionData.selectionRectY + coordsSelectionData.selectionRectHeight) + mouseMargin > mouse.y)
                 ) {
-                  dragTarget = DragTargets.Target.BottomRight
+                  coordsSelectionData.dragTarget = DragTargets.Target.BottomRight
                 } else
                 {
-                  dragTarget = DragTargets.Target.Center
+                  coordsSelectionData.dragTarget = DragTargets.Target.Center
                 }
 
-                dragX = mouse.x
-                dragY = mouse.y
-                console.log(dragTarget + " target detected, dragging started")
+                coordsSelectionData.dragStartX = mouse.x
+                coordsSelectionData.dragStartY = mouse.y
+
+                coordsSelectionData.dragPlusX = 0
+                coordsSelectionData.dragPlusY = 0
+                coordsSelectionData.dragPlusWidth = 0
+                coordsSelectionData.dragPlusHeight = 0
+
+                console.log(coordsSelectionData.dragTarget + " target detected, dragging started")
               }
             }
 
             onPositionChanged: function (mouse) {
               console.info("onPositionChanged")
 
-              if (dragTarget != DragTargets.Target.None) {
+              if (coordsSelectionData.dragTarget != DragTargets.Target.None) {
                 console.info("in drag handling")
 
-                const diffX = mouse.x - dragX
-                const diffY = mouse.y - dragY
+                const diffX = mouse.x - coordsSelectionData.dragStartX
+                const diffY = mouse.y - coordsSelectionData.dragStartY
 
-                if (dragTarget == DragTargets.Target.TopLeft) {
-                  coordsSelectionData.selectionRectX += diffX
-                  coordsSelectionData.selectionRectWidth -= diffX
-                  coordsSelectionData.selectionRectY += diffY
-                  coordsSelectionData.selectionRectHeight -= diffY
-                } else if (dragTarget == DragTargets.Target.TopRight) {
-                  coordsSelectionData.selectionRectWidth += diffX
-                  coordsSelectionData.selectionRectY += diffY
-                  coordsSelectionData.selectionRectHeight -= diffY
-                } else if (dragTarget == DragTargets.Target.BottomLeft) {
-                  coordsSelectionData.selectionRectX += diffX
-                  coordsSelectionData.selectionRectWidth -= diffX
-                  coordsSelectionData.selectionRectHeight += diffY
-                } else if (dragTarget == DragTargets.Target.BottomRight) {
-                  coordsSelectionData.selectionRectWidth += diffX
-                  coordsSelectionData.selectionRectHeight += diffY
+                if (coordsSelectionData.dragTarget == DragTargets.Target.Center) {
+                  coordsSelectionData.dragPlusX = diffX
+                  coordsSelectionData.dragPlusY = diffY
+                  coordsSelectionData.dragPlusWidth = 0
+                  coordsSelectionData.dragPlusHeight = 0
                 } else {
-                  coordsSelectionData.selectionRectX += diffX
-                  coordsSelectionData.selectionRectY += diffY
+                  const absX = Math.abs(diffX)
+                  const absY = Math.abs(diffY)
+                  const xIsMax = absX > absY
+                  const max = xIsMax ? absX : absY
+
+                  var dirX = diffX >= 0 ? 1 : -1
+                  var dirY = diffY >= 0 ? 1 : -1
+
+                  const dirsUseSameSign =
+                    coordsSelectionData.dragTarget == DragTargets.Target.TopLeft ||
+                    coordsSelectionData.dragTarget == DragTargets.Target.BottomRight
+
+                  if (xIsMax) {
+                    dirY = dirsUseSameSign ? dirX : -dirX
+                  } else {
+                    dirX = dirsUseSameSign ? dirY : -dirY
+                  }
+
+                  const normalX = max * dirX
+                  const normalY = max * dirY
+
+                  if (coordsSelectionData.dragTarget == DragTargets.Target.TopLeft) {
+                    coordsSelectionData.dragPlusX = normalX
+                    coordsSelectionData.dragPlusWidth = -normalX
+                    coordsSelectionData.dragPlusY = normalY
+                    coordsSelectionData.dragPlusHeight = -normalY
+                  } else if (coordsSelectionData.dragTarget == DragTargets.Target.TopRight) {
+                    coordsSelectionData.dragPlusWidth = normalX
+                    coordsSelectionData.dragPlusY = normalY
+                    coordsSelectionData.dragPlusHeight = -normalY
+                  } else if (coordsSelectionData.dragTarget == DragTargets.Target.BottomLeft) {
+                    coordsSelectionData.dragPlusX = normalX
+                    coordsSelectionData.dragPlusWidth = -normalX
+                    coordsSelectionData.dragPlusHeight = normalY
+                  } else if (coordsSelectionData.dragTarget == DragTargets.Target.BottomRight) {
+                    coordsSelectionData.dragPlusWidth = normalX
+                    coordsSelectionData.dragPlusHeight = normalY
+                  } else {
+                    console.error ("Somehow, we got this far into edge-only dragging calculation without being a valid edge?")
+                  }
                 }
 
-                dragX = mouse.x
-                dragY = mouse.y
                 coordsSelectionCanvas.requestPaint()
               }
             }
@@ -229,9 +267,19 @@ ApplicationWindow {
               console.log("onReleased")
 
               if (mouse.button == Qt.LeftButton) {
-                dragTarget = DragTargets.Target.None
-                dragX = 0
-                dragY = 0
+                coordsSelectionData.selectionRectX += coordsSelectionData.dragPlusX
+                coordsSelectionData.selectionRectY += coordsSelectionData.dragPlusY
+                coordsSelectionData.selectionRectWidth += coordsSelectionData.dragPlusWidth
+                coordsSelectionData.selectionRectHeight += coordsSelectionData.dragPlusHeight
+
+                coordsSelectionData.dragTarget = DragTargets.Target.None
+                coordsSelectionData.dragStartX = 0
+                coordsSelectionData.dragStartY = 0
+
+                coordsSelectionData.dragPlusX = 0
+                coordsSelectionData.dragPlusY = 0
+                coordsSelectionData.dragPlusWidth = 0
+                coordsSelectionData.dragPlusHeight = 0
               }
             }
           }
